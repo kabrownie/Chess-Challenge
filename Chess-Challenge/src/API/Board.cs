@@ -341,5 +341,10 @@ namespace ChessChallenge.API
         {
             throw new NotImplementedException();
         }
+
+        internal IEnumerable<Move> GetLegalMoves(Move[] moves)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
