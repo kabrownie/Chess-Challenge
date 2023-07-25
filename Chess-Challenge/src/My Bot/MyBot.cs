@@ -9,33 +9,34 @@ public class MyBot : IChessBot
         return GetBestMove(board);
     }
 
-    int[] pieceValues = { 0, 100, 300, 300, 500, 900, 0 };
+    int[] pieceValues = { 0, 100, 300, 300, 500, 900,10000 };
 
     Move GetBestMove(Board board)
     {
-        float bestScore = float.NegativeInfinity;
+        float bestScore = board.IsWhiteToMove ? float.NegativeInfinity : float.PositiveInfinity;
         Move[] moves = board.GetLegalMoves();
         Move bestMove = moves[0];
 
         foreach (Move move in moves)
         {
             board.MakeMove(move); // Make the move on the board
-            float score = Minimax(board, move, 3, float.NegativeInfinity, float.PositiveInfinity, false);
+            float score = Minimax(board, move, 3, float.NegativeInfinity, float.PositiveInfinity, !board.IsWhiteToMove);
             board.UndoMove(move); // Undo the move after evaluation
-            if(board.IsWhiteToMove)
+            
+            if (board.IsWhiteToMove)
             {
                 if (score > bestScore)
                 {
-                bestScore = score;
-                bestMove = move;
+                    bestScore = score;
+                    bestMove = move;
                 }
             }
             else
             {
                 if (score < bestScore)
                 {
-                bestScore = score;
-                bestMove = move;
+                    bestScore = score;
+                    bestMove = move;
                 }
             }
         }
@@ -100,43 +101,43 @@ public class MyBot : IChessBot
     }
 
     float Minimax(Board board, Move move, int depth, float alpha, float beta, bool isMaximizing)
+{
+    if (depth == 0)
+        return evaluate(board, move);
+
+    Move[] moves = board.GetLegalMoves();
+
+    if (isMaximizing)
     {
-        if (depth == 0)
-            return evaluate(board, move);
-
-        Move[] moves = board.GetLegalMoves();
-
-        if (isMaximizing)
+        float maxScore = float.NegativeInfinity;
+        foreach (Move childMove in moves)
         {
-            float maxScore = float.NegativeInfinity;
-            foreach (Move childMove in moves)
-            {
-                board.MakeMove(childMove); // Make the move on the board
-                float childScore = Minimax(board, childMove, depth - 1, alpha, beta, false);
-                board.UndoMove(childMove); // Undo the move after evaluation
+            board.MakeMove(childMove); // Make the move on the board
+            float childScore = Minimax(board, childMove, depth - 1, alpha, beta, false);
+            board.UndoMove(childMove); // Undo the move after evaluation
 
-                maxScore = Math.Max(maxScore, childScore);
-                alpha = Math.Max(alpha, childScore);
-                if (beta <= alpha)
-                    break;
-            }
-            return maxScore;
+            maxScore = Math.Max(maxScore, childScore);
+            alpha = Math.Max(alpha, childScore);
+            if (beta <= alpha)
+                break;
         }
-        else
-        {
-            float minScore = float.PositiveInfinity;
-            foreach (Move childMove in moves)
-            {
-                board.MakeMove(childMove); // Make the move on the board
-                float childScore = Minimax(board, childMove, depth - 1, alpha, beta, true);
-                board.UndoMove(childMove); // Undo the move after evaluation
-
-                minScore = Math.Min(minScore, childScore);
-                beta = Math.Min(beta, childScore);
-                if (beta <= alpha)
-                    break;
-            }
-            return minScore;
-        }
+        return maxScore;
     }
+    else // Minimizing player (black's turn)
+    {
+        float minScore = float.PositiveInfinity;
+        foreach (Move childMove in moves)
+        {
+            board.MakeMove(childMove); // Make the move on the board
+            float childScore = Minimax(board, childMove, depth - 1, alpha, beta, true);
+            board.UndoMove(childMove); // Undo the move after evaluation
+
+            minScore = Math.Min(minScore, childScore);
+            beta = Math.Min(beta, childScore);
+            if (beta <= alpha)
+                break;
+        }
+        return minScore;
+    }
+}
 }
