@@ -1,95 +1,142 @@
-﻿
-using ChessChallenge.API;
+﻿using ChessChallenge.API;
 using System;
+using System.Linq;
 
-namespace ChessChallenge.Application
+public class MyBot : IChessBot
 {
-
-    public class MyBot : IChessBot
+    public Move Think(Board board, Timer timer)
     {
-        // Piece values: null, pawn, knight, bishop, rook, queen, king
-        int[] pieceValues = { 0, 100, 300, 300, 500, 900, 10000 };
+        return GetBestMove(board);
+    }
 
-        public Move Think(Board board, Timer timer)
+    int[] pieceValues = { 0, 100, 300, 300, 500, 900, 0 };
+
+    Move GetBestMove(Board board)
+    {
+        float bestScore = float.NegativeInfinity;
+        Move[] moves = board.GetLegalMoves();
+        Move bestMove = moves[0];
+
+        foreach (Move move in moves)
         {
-            Move[] allMoves = board.GetLegalMoves();
-
-            // Pick a random move to play if nothing better is found
-            Random rng = new();
-            Move moveToPlay = allMoves[rng.Next(allMoves.Length)];
-            int highestValueCapture = 0;
-
-            foreach (Move move in allMoves)
+            board.MakeMove(move); // Make the move on the board
+            float score = Minimax(board, move, 3, float.NegativeInfinity, float.PositiveInfinity, false);
+            board.UndoMove(move); // Undo the move after evaluation
+            if(board.IsWhiteToMove)
             {
-                // Always play checkmate in one
-                if (MoveIsCheckmate(board, move))
+                if (score > bestScore)
                 {
-                    moveToPlay = move;
-                    break;
+                bestScore = score;
+                bestMove = move;
                 }
+            }
+            else
+            {
+                if (score < bestScore)
+                {
+                bestScore = score;
+                bestMove = move;
+                }
+            }
+        }
 
-            //     // Find highest value capture
-            //     Piece capturedPiece = board.GetPiece(move.TargetSquare);
-            //     int capturedPieceValue = pieceValues[(int)capturedPiece.PieceType];
+        return bestMove;
+    }
 
-            //     if (capturedPieceValue > highestValueCapture)
-            //     {
-            //         moveToPlay = move;
-            //         highestValueCapture = capturedPieceValue;
-            //     }
-            // }
-
-            // Find highest value capture that doesn't lead to a disadvantaged exchange
-Piece capturedPiece = board.GetPiece(move.TargetSquare);
-int capturedPieceValue = pieceValues[(int)capturedPiece.PieceType];
-Piece movingPiece = board.GetPiece(move.StartSquare);
-int movingPieceValue = pieceValues[(int)movingPiece.PieceType];
-
-// Check if the captured piece is defended by a higher-value piece
-bool isDefendedByHigherValuePiece = false;
-foreach (Move opponentMove in board.GetLegalMoves(board.GetOpponentPlayer()))
-{
-     if (opponentMove.TargetSquare == move.TargetSquare)
+    float evaluate(Board board, Move move)
     {
-        Piece defenderPiece = board.GetPiece(opponentMove.StartSquare);
-        int defenderPieceValue = pieceValues[(int)defenderPiece.PieceType];
+        PieceList[] pieceLists = board.GetAllPieceLists();
+        float eval = 0f;
 
-        if (defenderPieceValue > movingPieceValue)
+        // Rewards for piece values (pawns, knights, bishops, rooks, queens)
+        for (int i = 0; i < pieceLists.Length; i++)
         {
-            isDefendedByHigherValuePiece = true;
-            break;
+            if (i <= 5)
+            {
+                eval += pieceValues[i % 6] * pieceLists[i].Count;
+            }
+            else
+            {
+                eval -= pieceValues[i % 6] * pieceLists[i].Count;
+            }
+        }
+
+        // Additional rewards for specific piece positions
+        foreach (var pieceList in pieceLists)
+        {
+            foreach (var piece in pieceList)
+            {
+                if (piece.IsPawn)
+                {
+                    // Pawns get rewarded for moving down the board
+                    int pawnRow = piece.IsWhite ? piece.Square.Rank : 7 - piece.Square.Rank;
+                    eval += 10 * pawnRow;
+                }
+                else if (piece.IsKnight || piece.IsBishop)
+                {
+                    // Knights and bishops get rewarded for being in the center (e4, e5, d4, d5)
+                    int centerDistance = Math.Min(Math.Min(piece.Square.Rank, 7 - piece.Square.Rank),
+                                                  Math.Min(piece.Square.File, 7 - piece.Square.File));
+                    eval += piece.IsKnight ? 15 * centerDistance : 10 * centerDistance;
+
+                    // Extra punishment for knights on the edge of the board
+                    if (piece.IsKnight && (centerDistance == 3 || centerDistance == 4))
+                    {
+                        eval -= 50;
+                    }
+                }
+            }
+        }
+
+        // Reward the king for being near the edge when there are many pieces on the board
+        int totalPieceCount = pieceLists.Sum(pl => pl.Count);
+        int kingEdgeDistance = Math.Min(Math.Min(pieceLists[10][0].Square.Rank, 7 - pieceLists[10][0].Square.Rank),
+                                        Math.Min(pieceLists[10][0].Square.File, 7 - pieceLists[10][0].Square.File));
+        eval += 10 * kingEdgeDistance * (totalPieceCount / 16f);
+
+        // ... The rest of your existing code ...
+
+        return eval;
+    }
+
+    float Minimax(Board board, Move move, int depth, float alpha, float beta, bool isMaximizing)
+    {
+        if (depth == 0)
+            return evaluate(board, move);
+
+        Move[] moves = board.GetLegalMoves();
+
+        if (isMaximizing)
+        {
+            float maxScore = float.NegativeInfinity;
+            foreach (Move childMove in moves)
+            {
+                board.MakeMove(childMove); // Make the move on the board
+                float childScore = Minimax(board, childMove, depth - 1, alpha, beta, false);
+                board.UndoMove(childMove); // Undo the move after evaluation
+
+                maxScore = Math.Max(maxScore, childScore);
+                alpha = Math.Max(alpha, childScore);
+                if (beta <= alpha)
+                    break;
+            }
+            return maxScore;
+        }
+        else
+        {
+            float minScore = float.PositiveInfinity;
+            foreach (Move childMove in moves)
+            {
+                board.MakeMove(childMove); // Make the move on the board
+                float childScore = Minimax(board, childMove, depth - 1, alpha, beta, true);
+                board.UndoMove(childMove); // Undo the move after evaluation
+
+                minScore = Math.Min(minScore, childScore);
+                beta = Math.Min(beta, childScore);
+                if (beta <= alpha)
+                    break;
+            }
+            return minScore;
         }
     }
 }
- 
-if (capturedPieceValue > movingPieceValue || isDefendedByHigherValuePiece)
-{
-    // This is a disadvantageous exchange or the captured piece is defended by a higher-value piece, consider other moves
-    continue;
-}
-if (capturedPieceValue > highestValueCapture)
-{
-    // This capture is not disadvantageous, and it has a higher value than previous captures
-    moveToPlay = move;
-    highestValueCapture = capturedPieceValue;
-}
-
-            }
-            return moveToPlay;
-            }
-
-        // Test if this move gives checkmate
-       private bool MoveIsCheckmate(Board board, Move move)
-        {
-            board.MakeMove(move);
-            bool isMate = board.IsInCheckmate();
-            board.UndoMove(move);
-            return isMate;
-        }
-    }
-}
-//TODO
-//dont capture if the more value  piece will be capture by less value piece]
-//move away a larger value to where iit is not attacked by smaller value
-//avoid basic schooler mates
-//learn basic strategy fork pin etc

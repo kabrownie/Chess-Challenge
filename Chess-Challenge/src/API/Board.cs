@@ -337,12 +337,7 @@ namespace ChessChallenge.API
             return new Board(boardCore);
         }
 
-        internal bool GetOpponentPlayer()
-        {
-            throw new NotImplementedException();
-        }
-
-        internal IEnumerable<Move> GetLegalMoves(Move[] moves)
+        internal Piece SquareIsAttackedByOpponent(Piece capturedPiece)
         {
             throw new NotImplementedException();
         }
