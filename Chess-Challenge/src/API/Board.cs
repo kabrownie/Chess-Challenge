@@ -293,5 +293,9 @@ namespace ChessChallenge.API
             return new Board(boardCore);
         }
 
+        internal bool GetOpponentPlayer()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

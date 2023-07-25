@@ -28,22 +28,58 @@ namespace ChessChallenge.Application
                     break;
                 }
 
-                // Find highest value capture
-                Piece capturedPiece = board.GetPiece(move.TargetSquare);
-                int capturedPieceValue = pieceValues[(int)capturedPiece.PieceType];
+            //     // Find highest value capture
+            //     Piece capturedPiece = board.GetPiece(move.TargetSquare);
+            //     int capturedPieceValue = pieceValues[(int)capturedPiece.PieceType];
 
-                if (capturedPieceValue > highestValueCapture)
-                {
-                    moveToPlay = move;
-                    highestValueCapture = capturedPieceValue;
-                }
+            //     if (capturedPieceValue > highestValueCapture)
+            //     {
+            //         moveToPlay = move;
+            //         highestValueCapture = capturedPieceValue;
+            //     }
+            // }
+
+            // Find highest value capture that doesn't lead to a disadvantaged exchange
+Piece capturedPiece = board.GetPiece(move.TargetSquare);
+int capturedPieceValue = pieceValues[(int)capturedPiece.PieceType];
+Piece movingPiece = board.GetPiece(move.StartSquare);
+int movingPieceValue = pieceValues[(int)movingPiece.PieceType];
+
+// Check if the captured piece is defended by a higher-value piece
+bool isDefendedByHigherValuePiece = false;
+foreach (Move opponentMove in board.GetLegalMoves(board.GetOpponentPlayer()))
+{
+     if (opponentMove.TargetSquare == move.TargetSquare)
+    {
+        Piece defenderPiece = board.GetPiece(opponentMove.StartSquare);
+        int defenderPieceValue = pieceValues[(int)defenderPiece.PieceType];
+
+        if (defenderPieceValue > movingPieceValue)
+        {
+            isDefendedByHigherValuePiece = true;
+            break;
+        }
+    }
+}
+ 
+if (capturedPieceValue > movingPieceValue || isDefendedByHigherValuePiece)
+{
+    // This is a disadvantageous exchange or the captured piece is defended by a higher-value piece, consider other moves
+    continue;
+}
+if (capturedPieceValue > highestValueCapture)
+{
+    // This capture is not disadvantageous, and it has a higher value than previous captures
+    moveToPlay = move;
+    highestValueCapture = capturedPieceValue;
+}
+
+            }
+            return moveToPlay;
             }
 
-            return moveToPlay;
-        }
-
         // Test if this move gives checkmate
-        bool MoveIsCheckmate(Board board, Move move)
+       private bool MoveIsCheckmate(Board board, Move move)
         {
             board.MakeMove(move);
             bool isMate = board.IsInCheckmate();
@@ -52,3 +88,8 @@ namespace ChessChallenge.Application
         }
     }
 }
+//TODO
+//dont capture if the more value  piece will be capture by less value piece]
+//move away a larger value to where iit is not attacked by smaller value
+//avoid basic schooler mates
+//learn basic strategy fork pin etc
