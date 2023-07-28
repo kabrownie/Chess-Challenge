@@ -19,6 +19,13 @@ public class MyBot : IChessBot
 
         foreach (Move move in moves)
         {
+ // Always play checkmate in one
+                if (MoveIsCheckmate(board, move))
+                {
+                    bestMove = move;
+                    break;
+                }
+
             board.MakeMove(move); // Make the move on the board
             float score = Minimax(board, move, 3, float.NegativeInfinity, float.PositiveInfinity, !board.IsWhiteToMove);
             board.UndoMove(move); // Undo the move after evaluation
@@ -43,6 +50,15 @@ public class MyBot : IChessBot
 
         return bestMove;
     }
+// Test if this move gives checkmate
+        bool MoveIsCheckmate(Board board, Move move)
+        {
+            board.MakeMove(move);
+            bool isMate = board.IsInCheckmate();
+            board.UndoMove(move);
+            return isMate;
+        }
+
 
     float evaluate(Board board, Move move)
     {
