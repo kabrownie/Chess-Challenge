@@ -354,12 +354,6 @@ namespace ChessChallenge.API
             return new Board(boardCore);
         }
 
-        void OnPositionChanged()
-        {
-            moveGen.NotifyPositionChanged();
-            hasCachedMoves = false;
-            hasCachedCaptureMoves = false;
-        }
 
     }
 }
