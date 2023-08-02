@@ -19,13 +19,24 @@ public class MyBot : IChessBot
 
         foreach (Move move in moves)
         {
+
+            
  // Always play checkmate in one
                 if (MoveIsCheckmate(board, move))
                 {
                     bestMove = move;
                     break;
                 }
+// Test if this move gives checkmate
+    
 
+    bool MoveIsCheckmate(Board board, Move move)
+        {
+            board.MakeMove(move);
+            bool isMate = board.IsInCheckmate();
+            board.UndoMove(move);
+            return isMate;
+        }
             board.MakeMove(move); // Make the move on the board
             float score = Minimax(board, move, 3, float.NegativeInfinity, float.PositiveInfinity, !board.IsWhiteToMove);
             board.UndoMove(move); // Undo the move after evaluation
@@ -50,14 +61,6 @@ public class MyBot : IChessBot
 
         return bestMove;
     }
-// Test if this move gives checkmate
-        bool MoveIsCheckmate(Board board, Move move)
-        {
-            board.MakeMove(move);
-            bool isMate = board.IsInCheckmate();
-            board.UndoMove(move);
-            return isMate;
-        }
 
 
     float evaluate(Board board, Move move)
@@ -111,7 +114,7 @@ public class MyBot : IChessBot
                                         Math.Min(pieceLists[10][0].Square.File, 7 - pieceLists[10][0].Square.File));
         eval += 10 * kingEdgeDistance * (totalPieceCount / 16f);
 
-        // ... The rest of your existing code ...
+       
 
         return eval;
     }
